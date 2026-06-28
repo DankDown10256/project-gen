@@ -1,6 +1,37 @@
 use std::io::{self, Write};
 use std::fs;
 use std::process::Command;
+use clap::{Parser, ValueEnum};
+
+#[derive(Parser)]
+#[command(name = "project-gen")]
+#[command(about = "Projects Templates Generator")]
+struct Cli {
+    #[arg(short = 't', long = "type", value_enum)]
+    project_type: Option<ProjectType>,
+
+    #[arg(short = 'n', long = "name")]
+    name: Option<String>,
+
+    #[arg(short = 'a', long = "analyze")]
+    analyze: Option<String>,
+
+    #[arg(short = 'e', long = "tech")]
+    tech: Option<String>,
+
+    #[arg(short='d', long = "dir")]
+    dir: Option<String>,
+}
+
+#[derive(ValueEnum, Clone)]
+enum ProjectType {
+    Flask,
+    Rust,
+    Frontend,
+    Flutter,
+    Java,
+    Ios,
+}
 
 fn draw_title () {
     let title = "PROJECT TEMPLATES GENERATOR";
@@ -15,7 +46,126 @@ fn draw_title () {
     println!();
 }
 
+fn create_tree(name: &str, tree: &[(&str, bool)]) {
+    for (path, is_dir) in tree {
+        let full_path = format!("{}/{}", name, path);
+        if *is_dir {
+            if let Err(e) = fs::create_dir_all(&full_path) {
+                eprintln!("Error creating dir {}: {}", full_path, e);
+            }
+        } else {
+            if let Err(e) = fs::File::create(&full_path) {
+                eprintln!("Error creating file {}: {}", full_path, e);
+            }
+        }
+    }
+}
+
+fn create_flask(name: &str) {
+    let tree = [
+        ("templates/", true), ("static/", true),
+        ("app.py", false), ("requirements.txt", false),
+        ("templates/index.html", false), ("templates/style.css", false),
+    ];
+    create_tree(name, &tree);
+    println!("Flask project created in {}/", name);
+}
+
+fn create_rust(name: &str) {
+    let status = Command::new("cargo").arg("new").arg(name).status().expect("cargo not found");
+    if status.success() { println!("Rust project created"); } else { eprintln!("cargo new failed"); }
+}
+
+fn create_frontend(name: &str) {
+    fs::create_dir_all(name).ok();
+    let tree = [("index.html", false), ("style.css", false), ("app.js", false)];
+    create_tree(name, &tree);
+    println!("Frontend project created in {}/", name);
+}
+
+fn create_flutter(name: &str) {
+    let tree = [
+        ("assets/", true), ("lib/src/", true), ("lib/widgets/", true),
+        ("lib/main.dart", false), ("tests/", true), ("pubspec.yaml", false),
+    ];
+    create_tree(name, &tree);
+    println!("Flutter project created in {}/", name);
+}
+
+fn create_java(name: &str) {
+    let tree = [
+        ("src/main/java/com/me/app/", true),
+        ("src/main/java/com/me/app/Main.java", false),
+        ("src/main/resources/", true), ("target/", true), ("pom.xml", false),
+    ];
+    create_tree(name, &tree);
+    println!("Java project created in {}/", name);
+}
+
+fn create_ios(name: &str) {
+    fs::create_dir_all(name).ok();
+    let app_swift = format!("App/{}.swift", name);
+    let tests_swift = format!("Tests/{}Tests.swift", name);
+    let tree: &[(&str, bool)] = &[
+        ("App/", true), (app_swift.as_str(), false),
+        ("Views/", true), ("Views/ContentView.swift", false),
+        ("Resources/Assets.xcassets/", true),
+        ("Resources/Assets.xcassets/Contents.json", false),
+        ("Resources/Info.plist", false),
+        ("Tests/", true), (tests_swift.as_str(), false),
+    ];
+    create_tree(name, tree);
+    println!("iOS project created in {}/", name);
+}
+
 fn main() {
+    let cli = Cli::parse();
+    if let (Some(project_type), Some(name)) = (cli.project_type.clone(), cli.name.clone()) {
+        match project_type {
+            ProjectType::Flask => create_flask(&name),
+            ProjectType::Rust => create_rust(&name),
+            ProjectType::Frontend => create_frontend(&name),
+            ProjectType::Flutter => create_flutter(&name),
+            ProjectType::Java => create_java(&name),
+            ProjectType::Ios => create_ios(&name),
+        }
+        return;
+    }
+    if let (Some(dir), Some(tech)) = (cli.dir.clone(), cli.tech.clone()) {
+        let required_files = match tech.trim().to_lowercase().as_str() {
+            "flask" => vec!["app.py", "templates/", "static/", "requirements.txt"],
+            "rust" => vec!["Cargo.toml", "src/", "src/main.rs"],
+            "frontend" => vec!["index.html", "index.css", "app.js"],
+            "flutter" => vec!["assets/", "lib/", "lib/src/", "lib/widgets/", "lib/main.dart", "tests/", "pubspec.yaml"],
+            "java" => vec!["src/", "src/main/java/com/me/app/Main.java", "src/main/resources/", "target/", "pom.xml"],
+            "ios" => vec!["App/", "Views/", "Views/ContentView.swift", "Resources/", "Resources/Info.plist", "Tests/"],
+            _ => vec![]
+        };
+        if required_files.is_empty() {
+            println!("An error occured in the analyze of the directory");
+        }
+        else {
+            println!("Analyze in {}", dir);
+            let mut missing_files = 0;
+            for item in required_files {
+                let full_path = format!("{}/{}", dir, item);
+                if std::path::Path::new(&full_path).exists() {
+                    println!("The item {} is here", item);
+                }
+                else {
+                    println!("Missing: {}", item);
+                    missing_files = missing_files+1;
+                }
+            }
+            if missing_files == 0 {
+                println!("Your directory seems to be good");
+            }
+            else {
+                println!("The analyze reported {} missing files/directories", missing_files);
+            }
+        }
+        return;
+    }
     draw_title();
     let mut start = String::new();
     print!("1.Create a new project from a template\n2.Sart an analyze of an existing project(1 or 2): ");
@@ -35,178 +185,43 @@ fn main() {
             let mut filename = String::new();
             print!("Project file name : ");
             io::stdout().flush().unwrap();
-            io::stdin()
-                .read_line(&mut filename)
-                .expect("Error in reading retry");
-            let filename = filename.trim();
-            match fs::create_dir_all(format!("{}/templates", filename)){
-                Ok(_) => {
-                    let files_to_create = vec![
-                        format!("{}/app.py", filename),
-                        format!("{}/templates/index.html", filename),
-                        format!("{}/templates/style.css", filename),
-                        format!("{}/templates/app.js", filename),
-                    ];
-                    for f in &files_to_create{
-                        if let Err(e) = fs::File::create(f) {
-                            eprintln!("Error in the creation of {}: {}", f, e);
-                        }
-                    }
-                    println!("Flask projects available in the directory {}", filename)
-                }
-                Err(e) => {
-                    eprintln!("Can't create the template: {}", e);
-                }
-            }
+            io::stdin().read_line(&mut filename).expect("Error in reading retry");
+            create_flask(filename.trim());
         }
-        else if project.trim().to_lowercase() == "rust" {
+        if project.trim().to_lowercase() == "rust" {
             let mut filename = String::new();
             print!("Project file name : ");
             io::stdout().flush().unwrap();
-            io::stdin()
-                .read_line(&mut filename)
-                .expect("Error in reading retry");
-            let filename = filename.trim();
-            let status = Command::new("cargo")
-                .arg("new")
-                .arg(filename)
-                .status()
-                .expect("An error occured");
-            if status.success() {
-                println!("The rust project have been succefully created with cargo");
-            }
-            else{
-                println!("An error occured");
-            }
+            io::stdin().read_line(&mut filename).expect("Error in reading retry");
+            create_rust(filename.trim());
         }
-        else if project.trim().to_lowercase() == "frontend" {
+        if project.trim().to_lowercase() == "frontend" {
             let mut filename = String::new();
             print!("Project file name : ");
             io::stdout().flush().unwrap();
-            io::stdin()
-                .read_line(&mut filename)
-                .expect("Error in reading retry");
-            let filename = filename.trim();
-            match fs::create_dir_all(format!("{}", filename)){
-                Ok(_) => {
-                    let files_to_create = vec![
-                        format!("{}/index.html", filename),
-                        format!("{}/style.css", filename),
-                        format!("{}/app.js", filename),
-                    ];
-                    for f in &files_to_create{
-                        if let Err(e) = fs::File::create(f) {
-                            eprintln!("Error in the creation of {}: {}", f, e);
-                        }
-                    }
-                    println!("Frontend template is available in the directory {}", filename)
-                }
-                Err(e) => {
-                    eprintln!("Can't create the template: {}", e);
-                }
-            }
+            io::stdin().read_line(&mut filename).expect("Error in reading retry");
+            create_frontend(filename.trim());
         }
-        else if project.trim().to_lowercase() == "flutter" {
+        if project.trim().to_lowercase() == "flutter" {
             let mut filename = String::new();
             print!("Project file name : ");
             io::stdout().flush().unwrap();
-            io::stdin()
-                .read_line(&mut filename)
-                .expect("Error in reading retry");
-            let filename = filename.trim();
-            let flutter_tree = vec![
-                ("assets/", true),
-                ("lib/", true),
-                ("lib/src/", true),
-                ("lib/widgets/", true),
-                ("lib/main.dart", false),
-                ("tests/", true),
-                ("pubspec.yaml", false),
-            ];
-            for (path, is_dir) in flutter_tree {
-                let full_path = format!("{}/{}", filename, path);
-
-                if is_dir{
-                    if let Err(e) = fs::create_dir_all(&full_path){
-                        eprintln!("An error occured retry: {}", e);
-                    }
-                }
-                else{
-                    if let Err(e) = fs::File::create(&full_path){
-                        eprintln!("Error in the creation of {}: {}", full_path, e);
-                    }
-                }
-            }
+            io::stdin().read_line(&mut filename).expect("Error in reading retry");
+            create_flask(filename.trim());
         }
-        else if project.trim().to_lowercase() == "java" {
+        if project.trim().to_lowercase() == "java" {
             let mut filename = String::new();
             print!("Project file name : ");
             io::stdout().flush().unwrap();
-            io::stdin()
-                .read_line(&mut filename)
-                .expect("Error in reading retry");
-            let filename = filename.trim();
-            let java_tree = vec![
-                ("src/", true),
-                ("src/main/", true),
-                ("src/main/java/", true),
-                ("src/main/java/com/", true),
-                ("src/main/java/com/me/", true),
-                ("src/main/java/com/me/app/", true),
-                ("src/main/java/com/me/app/Main.java", false),
-                ("src/main/resources/", true),
-                ("target/", true),
-                ("pom.xml", false),
-            ];
-            for (path, is_dir) in java_tree {
-                let full_path = format!("{}/{}", filename, path);
-
-                if is_dir{
-                    if let Err(e) = fs::create_dir_all(&full_path){
-                        eprintln!("An error occured retry: {}", e);
-                    }
-                }
-                else{
-                    if let Err(e) = fs::File::create(&full_path){
-                        eprintln!("Error in the creation of {}: {}", full_path, e);
-                    }
-                }
-            }
+            io::stdin().read_line(&mut filename).expect("Error in reading retry");
+            create_java(filename.trim());
         }
-        else if project.trim().to_lowercase() == "ios" {
+        if project.trim().to_lowercase() == "ios" {
             let mut filename = String::new();
             print!("Project file name : ");
             io::stdout().flush().unwrap();
-            io::stdin()
-                .read_line(&mut filename)
-                .expect("Error in reading retry");
-            let filename = filename.trim();
-            let ios_tree: Vec<(String, bool)> = vec![
-                ("App/".to_string(), true),
-                (format!("App/{}.swift", filename), false),
-                ("Views/".to_string(), true),
-                ("Views/ContentView.swift".to_string(), false),
-                ("Resources/".to_string(), true),
-                ("Resources/Assests.xcassets/".to_string(), true),
-                ("Resources/Assets.xcassets/Contents.json".to_string(), false),
-                ("Resources/Info.plist".to_string(), false),
-                ("Tests/".to_string(), true),
-                (format!("Tests/{}Tests.swift", filename), false),
-            ];
-            for (path, is_dir) in ios_tree {
-                let full_path = format!("{}/{}", filename, path);
-
-                if is_dir{
-                    if let Err(e) = fs::create_dir_all(&full_path){
-                        eprintln!("An error occured retry: {}", e);
-                    }
-                }
-                else{
-                    if let Err(e) = fs::File::create(&full_path){
-                        eprintln!("Error in the creation of {}: {}", full_path, e);
-                    }
-                }
-            }
+            io::stdin().read_line(&mut filename).expect("Error in reading retry");
+            create_ios(filename.trim());
         }
     }
     else if start.trim() == "2" {
