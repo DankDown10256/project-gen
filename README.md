@@ -107,3 +107,7 @@ frontend (html, css, js)
 ```
 
 Pick a template, enter a project name, and the files are generated instantly.
+
+# Contribution/Feedbacks
+
+All feedbacks are welcome. If you want to help to upgrade this project you can contribute by checking the rules here [CONTRIBUTING.md](CONTRIBUTING.md).
