@@ -1,4 +1,4 @@
-# Contributing to Rust Templates Generator
+# Contributing to project-gen
 
 this tool follows a workflow inspired by the Linux kernel: contributions are
 submitted as patches by email, not as GitHub pull requests.
