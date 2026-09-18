@@ -1,6 +1,6 @@
 # Project Generator
 
-A CLI tool to quickly scaffold project templates for Flask, Rust (Cargo), and Frontend (HTML/CSS/JS).
+A CLI tool to quickly scaffold project templates for Flask, Rust (Cargo), Frontend (HTML/CSS/JS), Flutter, Java, and iOS.
 
 ---
 
@@ -20,7 +20,7 @@ source $HOME/.cargo/env
 
 ### Windows
 
-Download and run the installer from the official page:  
+Download and run the installer from the official page:
 **https://www.rust-lang.org/tools/install**
 
 Follow the on-screen instructions. This installs both `rustup`, `rustc`, and `cargo`.
@@ -54,60 +54,72 @@ cd rust_project_templates_generator
 cargo build --release
 ```
 
-### 4. Run the tool
+### 4. Add to PATH (optional)
 
-```bash
-cargo run
-```
-
----
-
-## Add to PATH as `project-gen`
-
-To run the tool from anywhere with the command `project-gen`:
-
-### Linux / macOS
+#### Linux / macOS
 
 ```bash
 sudo cp target/release/project_generator /usr/local/bin/project-gen
 ```
 
-You can now run it from any directory:
-
-```bash
-project-gen
-```
-
-### Windows (PowerShell — run as Administrator)
+#### Windows (PowerShell — run as Administrator)
 
 ```powershell
 Copy-Item "target\release\project_generator.exe" "C:\Windows\System32\project-gen.exe"
 ```
 
-Or, alternatively, add the `target\release\` folder to your `PATH` environment variable:
-
-1. Open **System Properties** → **Environment Variables**
-2. Under **User variables**, select `Path` and click **Edit**
-3. Click **New** and add the full path to `target\release\`
-4. Click **OK** and restart your terminal
-
-Then create an alias or rename the binary to `project-gen.exe`.
+Or add `target\release\` to your `PATH` environment variable and rename the binary to `project-gen.exe`.
 
 ---
 
 ## Usage
 
-When launched, the tool displays available templates:
+### Create a project
 
-```
-Available projects templates :
-Flask
-Rust (cargo)
-frontend (html, css, js)
+```bash
+project-gen -t <type> -n <name>
 ```
 
-Pick a template, enter a project name, and the files are generated instantly.
+#### Available types
 
-# Contribution/Feedbacks
+| Type | Description |
+|------|-------------|
+| `flask` | Python Flask app (`app.py`, `templates/`, `static/`, `requirements.txt`) |
+| `rust` | Rust Cargo project (`cargo new`) |
+| `frontend` | HTML/CSS/JS (`index.html`, `style.css`, `app.js`) |
+| `flutter` | Flutter/Dart app (`lib/`, `pubspec.yaml`, `tests/`) |
+| `java` | Java Maven project (`pom.xml`, `src/main/java/`) |
+| `ios` | Swift/Xcode project (`App/`, `Views/`, `Resources/`, `Tests/`) |
+
+#### Examples
+
+```bash
+project-gen -t flask -n my-api
+project-gen -t rust -n my-lib
+project-gen -t frontend -n landing-page
+project-gen -t flutter -n my-app
+project-gen -t java -n my-service
+project-gen -t ios -n my-ios-app
+```
+
+### Analyze an existing project
+
+Check if a directory contains the expected files for a given technology:
+
+```bash
+project-gen -d <directory> -e <tech>
+```
+
+#### Example
+
+```bash
+project-gen -d ./my-project -e flask
+```
+
+This will report which expected files are present or missing.
+
+---
+
+## Contribution/Feedbacks
 
 All feedbacks are welcome. If you want to help to upgrade this project you can contribute by checking the rules here [CONTRIBUTING.md](CONTRIBUTING.md).

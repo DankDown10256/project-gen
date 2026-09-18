@@ -1,4 +1,3 @@
-use std::io::{self, Write};
 use std::fs;
 use std::process::Command;
 use clap::{Parser, ValueEnum};
@@ -13,13 +12,10 @@ struct Cli {
     #[arg(short = 'n', long = "name")]
     name: Option<String>,
 
-    #[arg(short = 'a', long = "analyze")]
-    analyze: Option<String>,
-
     #[arg(short = 'e', long = "tech")]
     tech: Option<String>,
 
-    #[arg(short='d', long = "dir")]
+    #[arg(short = 'd', long = "dir")]
     dir: Option<String>,
 }
 
@@ -31,19 +27,6 @@ enum ProjectType {
     Flutter,
     Java,
     Ios,
-}
-
-fn draw_title () {
-    let title = "PROJECT TEMPLATES GENERATOR";
-    let sub = "Happy Coding";
-    let width = 100;
-
-    println!("╭{:─^width$}╮", "", width = width);
-    println!("│{:^width$}│", title, width = width);
-    println!("├{:─^width$}┤", "", width = width);
-    println!("│ {:<width$} │", sub, width = width - 2);
-    println!("╰{:─^width$}╯", "", width = width);
-    println!();
 }
 
 fn create_tree(name: &str, tree: &[(&str, bool)]) {
@@ -118,9 +101,41 @@ fn create_ios(name: &str) {
     println!("iOS project created in {}/", name);
 }
 
+fn analyze_dir(dir: &str, tech: &str) {
+    let required_files = match tech.trim().to_lowercase().as_str() {
+        "flask" => vec!["app.py", "templates/", "static/", "requirements.txt"],
+        "rust" => vec!["Cargo.toml", "src/", "src/main.rs"],
+        "frontend" => vec!["index.html", "style.css", "app.js"],
+        "flutter" => vec!["assets/", "lib/", "lib/src/", "lib/widgets/", "lib/main.dart", "tests/", "pubspec.yaml"],
+        "java" => vec!["src/", "src/main/java/com/me/app/Main.java", "src/main/resources/", "target/", "pom.xml"],
+        "ios" => vec!["App/", "Views/", "Views/ContentView.swift", "Resources/", "Resources/Info.plist", "Tests/"],
+        _ => vec![]
+    };
+    if required_files.is_empty() {
+        eprintln!("Unknown technology: {}", tech);
+        return;
+    }
+    println!("Analyzing {} as {} project", dir, tech);
+    let mut missing_files = 0;
+    for item in required_files {
+        let full_path = format!("{}/{}", dir, item);
+        if std::path::Path::new(&full_path).exists() {
+            println!("  [OK] {}", item);
+        } else {
+            println!("  [MISSING] {}", item);
+            missing_files += 1;
+        }
+    }
+    if missing_files == 0 {
+        println!("Your directory looks good!");
+    } else {
+        println!("Found {} missing file(s)/director(ies)", missing_files);
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
-    if let (Some(project_type), Some(name)) = (cli.project_type.clone(), cli.name.clone()) {
+    if let (Some(project_type), Some(name)) = (cli.project_type, cli.name) {
         match project_type {
             ProjectType::Flask => create_flask(&name),
             ProjectType::Rust => create_rust(&name),
@@ -131,144 +146,13 @@ fn main() {
         }
         return;
     }
-    if let (Some(dir), Some(tech)) = (cli.dir.clone(), cli.tech.clone()) {
-        let required_files = match tech.trim().to_lowercase().as_str() {
-            "flask" => vec!["app.py", "templates/", "static/", "requirements.txt"],
-            "rust" => vec!["Cargo.toml", "src/", "src/main.rs"],
-            "frontend" => vec!["index.html", "index.css", "app.js"],
-            "flutter" => vec!["assets/", "lib/", "lib/src/", "lib/widgets/", "lib/main.dart", "tests/", "pubspec.yaml"],
-            "java" => vec!["src/", "src/main/java/com/me/app/Main.java", "src/main/resources/", "target/", "pom.xml"],
-            "ios" => vec!["App/", "Views/", "Views/ContentView.swift", "Resources/", "Resources/Info.plist", "Tests/"],
-            _ => vec![]
-        };
-        if required_files.is_empty() {
-            println!("An error occured in the analyze of the directory");
-        }
-        else {
-            println!("Analyze in {}", dir);
-            let mut missing_files = 0;
-            for item in required_files {
-                let full_path = format!("{}/{}", dir, item);
-                if std::path::Path::new(&full_path).exists() {
-                    println!("The item {} is here", item);
-                }
-                else {
-                    println!("Missing: {}", item);
-                    missing_files = missing_files+1;
-                }
-            }
-            if missing_files == 0 {
-                println!("Your directory seems to be good");
-            }
-            else {
-                println!("The analyze reported {} missing files/directories", missing_files);
-            }
-        }
+    if let (Some(dir), Some(tech)) = (cli.dir, cli.tech) {
+        analyze_dir(&dir, &tech);
         return;
     }
-    draw_title();
-    let mut start = String::new();
-    print!("1.Create a new project from a template\n2.Sart an analyze of an existing project(1 or 2): ");
-    io::stdout().flush().unwrap();
-    io::stdin()
-        .read_line(&mut start)
-        .expect("An error occured");
-    if start.trim() == "1" {
-        println!("Available projects templates :\nFlask\nRust (cargo new)\nFrontend (html, css, js)\nFlutter\nJava\nIOS");
-        let mut project = String::new();
-        print!("Pick one: ");
-        io::stdout().flush().unwrap();
-        io::stdin()
-            .read_line(&mut project)
-            .expect("Reading error retry later");
-        if project.trim().to_lowercase() == "flask" {
-            let mut filename = String::new();
-            print!("Project file name : ");
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut filename).expect("Error in reading retry");
-            create_flask(filename.trim());
-        }
-        if project.trim().to_lowercase() == "rust" {
-            let mut filename = String::new();
-            print!("Project file name : ");
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut filename).expect("Error in reading retry");
-            create_rust(filename.trim());
-        }
-        if project.trim().to_lowercase() == "frontend" {
-            let mut filename = String::new();
-            print!("Project file name : ");
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut filename).expect("Error in reading retry");
-            create_frontend(filename.trim());
-        }
-        if project.trim().to_lowercase() == "flutter" {
-            let mut filename = String::new();
-            print!("Project file name : ");
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut filename).expect("Error in reading retry");
-            create_flask(filename.trim());
-        }
-        if project.trim().to_lowercase() == "java" {
-            let mut filename = String::new();
-            print!("Project file name : ");
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut filename).expect("Error in reading retry");
-            create_java(filename.trim());
-        }
-        if project.trim().to_lowercase() == "ios" {
-            let mut filename = String::new();
-            print!("Project file name : ");
-            io::stdout().flush().unwrap();
-            io::stdin().read_line(&mut filename).expect("Error in reading retry");
-            create_ios(filename.trim());
-        }
-    }
-    else if start.trim() == "2" {
-        let mut directory = String::new();
-        print!("Which directory to analyze: ");
-        io::stdout().flush().unwrap();
-        io::stdin()
-            .read_line(&mut directory)
-            .expect("An error occured");
-        let dir = directory.trim();
-        let mut tech = String::new();
-        print!("Chose in supported technologies for scanning: Flask, Rust, Flutter, IOS, Java, Frontend: ");
-        io::stdout().flush().unwrap();
-        io::stdin()
-            .read_line(&mut tech)
-            .expect("An error occured");
-        let required_files = match tech.trim().to_lowercase().as_str() {
-            "flask" => vec!["app.py", "templates/", "static/", "requirements.txt"],
-            "rust" => vec!["Cargo.toml", "src/", "src/main.rs"],
-            "frontend" => vec!["index.html", "index.css", "app.js"],
-            "flutter" => vec!["assets/", "lib/", "lib/src/", "lib/widgets/", "lib/main.dart", "tests/", "pubspec.yaml"],
-            "java" => vec!["src/", "src/main/java/com/me/app/Main.java", "src/main/resources/", "target/", "pom.xml"],
-            "ios" => vec!["App/", "Views/", "Views/ContentView.swift", "Resources/", "Resources/Info.plist", "Tests/"],
-            _ => vec![]
-        };
-        if required_files.is_empty() {
-            println!("An error occured in the analyze of the directory");
-        }
-        else {
-            println!("Analyze in {}", dir);
-            let mut missing_files = 0;
-            for item in required_files {
-                let full_path = format!("{}/{}", dir, item);
-                if std::path::Path::new(&full_path).exists() {
-                    println!("The item {} is here", item);
-                }
-                else {
-                    println!("Missing: {}", item);
-                    missing_files = missing_files+1;
-                }
-            }
-            if missing_files == 0 {
-                println!("Your directory seems to be good");
-            }
-            else {
-                println!("The analyze reported {} missing files/directories", missing_files);
-            }
-        }
-    }
+    eprintln!("Usage:");
+    eprintln!("  Create:  project-gen -t <type> -n <name>");
+    eprintln!("  Analyze: project-gen -d <dir> -e <tech>");
+    eprintln!();
+    eprintln!("Types: flask, rust, frontend, flutter, java, ios");
 }
