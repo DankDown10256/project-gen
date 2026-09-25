@@ -39,13 +39,13 @@ cargo --version
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/DankDown10256/rust_project_templates_generator/
+git clone https://github.com/DankDown10256/project-gen/
 ```
 
 ### 2. Enter the directory
 
 ```bash
-cd rust_project_templates_generator
+cd project-gen
 ```
 
 ### 3. Build the project
@@ -59,13 +59,13 @@ cargo build --release
 #### Linux / macOS
 
 ```bash
-sudo cp target/release/project_generator /usr/local/bin/project-gen
+sudo cp target/release/project-gen /usr/local/bin/project-gen
 ```
 
 #### Windows (PowerShell — run as Administrator)
 
 ```powershell
-Copy-Item "target\release\project_generator.exe" "C:\Windows\System32\project-gen.exe"
+Copy-Item "target\release\project-gen.exe" "C:\Windows\System32\project-gen.exe"
 ```
 
 Or add `target\release\` to your `PATH` environment variable and rename the binary to `project-gen.exe`.
