@@ -1,5 +1,5 @@
 use std::fs;
-use std::process::Command;
+use std::process::Command as StdCommand;
 use clap::{Parser, ValueEnum};
 
 #[derive(Parser)]
@@ -17,6 +17,9 @@ struct Cli {
 
     #[arg(short = 'd', long = "dir")]
     dir: Option<String>,
+
+    #[arg(short = 'g', long = "git", action = clap::ArgAction::SetTrue)]
+    git: bool,
 }
 
 #[derive(ValueEnum, Clone)]
@@ -66,7 +69,7 @@ fn create_flask(name: &str) {
 }
 
 fn create_rust(name: &str) {
-    let status = Command::new("cargo").arg("new").arg(name).status().expect("cargo not found");
+    let status = StdCommand::new("cargo").arg("new").arg(name).status().expect("cargo not found");
     if status.success() { println!("Rust project created"); } else { eprintln!("cargo new failed"); }
 }
 
@@ -155,6 +158,16 @@ fn main() {
             ProjectType::Java => create_java(&name),
             ProjectType::Ios => create_ios(&name),
         }
+        if cli.git {
+            if StdCommand::new("git")
+                .arg("init")
+                .arg(&name)
+                .status()
+                .is_ok()
+            {
+                println!("Git repository initialized");
+            }
+        }
         return;
     }
     if let (Some(dir), Some(tech)) = (cli.dir, cli.tech) {
@@ -162,7 +175,7 @@ fn main() {
         return;
     }
     eprintln!("Usage:");
-    eprintln!("  Create:  project-gen -t <type> -n <name>");
+    eprintln!("  Create:  project-gen -t <type> -n <name> [-g]");
     eprintln!("  Analyze: project-gen -d <dir> -e <tech>");
     eprintln!();
     eprintln!("Types: flask, rust, frontend, flutter, java, ios");
