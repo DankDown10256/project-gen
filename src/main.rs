@@ -51,6 +51,17 @@ fn create_flask(name: &str) {
         ("templates/index.html", false), ("templates/style.css", false),
     ];
     create_tree(name, &tree);
+    fs::write(format!("{}/app.py", name), "
+        from flask import Flask
+        app = Flask(__name__)
+
+        @app.route('/')
+        def foo():
+            return 'foo'
+
+        if __name__ == '__main__':
+            app.run(debug=True)
+        ").ok();
     println!("Flask project created in {}/", name);
 }
 
