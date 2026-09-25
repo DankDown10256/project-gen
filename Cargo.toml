@@ -1,6 +1,6 @@
 [package]
-name = "project_generator"
-version = "0.1.0"
+name = "project-gen"
+version = "1.1.4"
 edition = "2024"
 license = "MIT"
 
